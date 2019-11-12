@@ -3,18 +3,80 @@
   <head>
     <title>YouTube Audio Saver</title>
     <link rel='stylesheet' href='/stylesheets/style.css' />
+
+    <script
+		src="https://code.jquery.com/jquery-3.4.1.min.js"
+		integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+		crossorigin="anonymous" defer></script>
   </head>
   <body class="flex-column center-both">
-    <h1>Save a song from YouTube</h1>
 
-    <form method="POST" class="center-text">
+  	<div id="saving-overlay" class="fullscreen flex-column center-both" style="display: none;">
+  		Saving...please wait...
+  	</div>
+
+    <h1>Save a song or video from YouTube</h1>
+
+    <h3>Set the directory to save in (default will be project folder)</h3>
+  	<input type="text" id="dirpath" />
+
+    <h2>Audio</h2>
+
+    <div id="audio" class="center-text">
     	<input type="text" name="filename" placeholder="filename here" />
     	<br/>
     	<br/>
     	<input type="text" name="url" placeholder="url here" />
     	<br/>
     	<br/>
-    	<button type="submit" class="button">Save</button>
-    </form>
+    	<button type="button" onclick="save('audio')" class="button">Save</button>
+    </div>
+
+    <br/>
+    <br/>
+
+    <h2>Video</h2>
+
+    <div id="video" class="center-text">
+    	<input type="text" name="filename" placeholder="filename here" />
+    	<br/>
+    	<br/>
+    	<input type="text" name="url" placeholder="url here" />
+    	<br/>
+    	<br/>
+    	<button type="button" onclick="save('video')" class="button">Save</button>
+    </div>
+
+    <script type="text/javascript">
+		function save(formId) {
+			let form = $("#" + formId);
+			let dirSet = $("#dirpath").val();
+			showSavingOverlay();
+			$.ajax({
+				type: 'POST',
+				url: `/save-${formId}`,
+				data: {
+					filename: form.find('input[name=filename]').val().trim(),
+					url: form.find('input[name=url]').val().trim(),
+					dir: dirSet
+				}, success: function() {
+					hideSavingOverlay();
+					alert('saved!');
+				}, error: function(err) {
+					hideSavingOverlay();
+					alert('not saved: ', err);
+				}
+			})
+		}
+
+		function showSavingOverlay() {
+			$("#saving-overlay").show();
+		}
+
+		function hideSavingOverlay() {
+			$("#saving-overlay").hide();
+		}
+    </script>
+
   </body>
 </html>

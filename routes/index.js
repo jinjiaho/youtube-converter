@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const fs = require('fs');
+const path = require('path');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
 
@@ -13,8 +14,12 @@ router.get('/', function(req, res, next) {
 })
 
 /* GET home page. */
-router.post('/', function(req, res, next) {
+router.post('/save-audio', function(req, res, next) {
+
 	console.log(req.body);
+
+	let filename = req.body.dir ? path.join(req.body.dir, req.body.filename) : req.body.filename;
+
 	let stream = ytdl(req.body.url, {
 		quality: 'highestaudio',
 		filter: 'audioonly'
@@ -22,11 +27,25 @@ router.post('/', function(req, res, next) {
 
 	ffmpeg(stream)
 	.audioBitrate(128)
-	.save(req.body.filename + '.mp3')
+	.save(filename + '.mp3')
 	.on('end', (p) => {
 		res.status(200).send('file finished saving');
 	});
 });
+
+router.post('/save-video', function(req, res, next) {
+	console.log(req.body);
+
+	let filename = req.body.dir ? path.join(req.body.dir, req.body.filename) : req.body.filename;
+
+	let stream = ytdl(req.body.url, {
+		quality: 'highestvideo'
+	}).pipe(fs.createWriteStream(filename + '.mp4'));
+
+	stream.on('finish', () => {
+		res.status(200).send('file finished saving');
+	})
+})
 
 /* GET home page. */
 router.get('/test-audio', function(req, res, next) {
