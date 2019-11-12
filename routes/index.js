@@ -8,6 +8,26 @@ const ffmpeg = require('fluent-ffmpeg');
 let url = 'https://www.youtube.com/watch?v=0arsPXEaIUY';
 let eatshitbob = 'https://www.youtube.com/watch?v=UN8bJb8biZU';
 
+router.get('/', function(req, res, next) {
+	res.render('index.ejs');
+})
+
+/* GET home page. */
+router.post('/', function(req, res, next) {
+	console.log(req.body);
+	let stream = ytdl(req.body.url, {
+		quality: 'highestaudio',
+		filter: 'audioonly'
+	});
+
+	ffmpeg(stream)
+	.audioBitrate(128)
+	.save(req.body.filename + '.mp3')
+	.on('end', (p) => {
+		res.status(200).send('file finished saving');
+	});
+});
+
 /* GET home page. */
 router.get('/test-audio', function(req, res, next) {
 	let stream = ytdl(url, {
