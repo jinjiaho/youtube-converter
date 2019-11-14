@@ -1,10 +1,33 @@
 body {
   padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  font: 16pt "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
 a {
   color: #00B7FF;
+}
+
+input {
+	padding: 0.25rem;
+	font-size: 14pt;
+	text-align: center;
+}
+
+input[type=number] {
+	min-width: unset;
+	width: 3rem;
+}
+
+button {
+	border-radius: 0.5rem;
+	box-shadow: none;
+	font-size: 14pt;
+	cursor: pointer;
+}
+
+button:focus {
+	outline: none;
+	box-shadow: 0 0 5px 0 #6ca1f9;
 }
 
 .flex-column {
@@ -22,10 +45,15 @@ a {
 }
 
 .fullscreen {
-	position: absolute;
+	position: fixed;
 	top: 0;
 	bottom: 0;
 	left: 0;
 	right: 0;
 	background: rgba(0, 0, 0, 0.6);
+}
+
+#saving-overlay {
+	font-size: 1.3rem;
+	color: white;
 }

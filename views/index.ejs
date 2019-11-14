@@ -17,57 +17,97 @@
 
     <h1>Save a song or video from YouTube</h1>
 
-    <h3>Set the directory to save in (default will be project folder)</h3>
+    <h4>Set the directory to save in (default will be project folder)</h4>
+
   	<input type="text" id="dirpath" />
 
     <h2>Audio</h2>
 
-    <div id="audio" class="center-text">
-    	<input type="text" name="filename" placeholder="filename here" />
-    	<br/>
-    	<br/>
-    	<input type="text" name="url" placeholder="url here" />
-    	<br/>
-    	<br/>
+    <form id="audio" class="center-text">
+      <input type="text" name="url" placeholder="url (required)" autocomplete="true" required/>
+      <br/><br/>
+    	<input type="text" name="artist" placeholder="artist" />
+      <br/><br/>
+      <input type="text" name="title" placeholder="title (required)" required />
+      <br/><br/>
+      <input type="text" name="version" placeholder="version" />
+    	<br/><br/>
+      <p>range</p>
+      <div>
+        <input type="number" name="start-h" min="0" value="00" pattern="[0-9]{0,2}" />:
+        <input type="number" name="start-m" min="0" max="60" value="00" pattern="[0-9]{0,2}" />:
+        <input type="number" name="start-s" min="0" max="60" value="00" pattern="[0-9]{0,2}" />
+        &nbsp;to&nbsp;
+        <input type="number" name="end-h" min="0" pattern="[0-9]{0,2}" />:
+        <input type="number" name="end-m" min="0" max="60" pattern="[0-9]{0,2}" />:
+        <input type="number" name="end-s" min="0" max="60"  pattern="[0-9]{0,2}"/>
+      </div>
+      <br/><br/>
     	<button type="button" onclick="save('audio')" class="button">Save</button>
-    </div>
+    </form>
 
     <br/>
     <br/>
 
     <h2>Video</h2>
 
-    <div id="video" class="center-text">
-    	<input type="text" name="filename" placeholder="filename here" />
-    	<br/>
-    	<br/>
-    	<input type="text" name="url" placeholder="url here" />
-    	<br/>
-    	<br/>
+    <form id="video" class="center-text">
+      <input type="text" name="url" placeholder="url (required)" required/>
+      <br/><br/>
+      <input type="text" name="artist" placeholder="artist" />
+      <br/><br/>
+      <input type="text" name="title" placeholder="title (required)" required/>
+      <br/><br/>
+      <p>range</p>
+      <div>
+        <input type="number" name="start-h" min="0" value="00" />:
+        <input type="number" name="start-m" min="0" max="60" value="00" />:
+        <input type="number" name="start-s" min="0" max="60" value="00" />
+        &nbsp;to&nbsp;
+        <input type="number" name="end-h" min="0" />:
+        <input type="number" name="end-m" min="0" max="60" />:
+        <input type="number" name="end-s" min="0" max="60" />
+      </div>
+    	<br/><br/>
     	<button type="button" onclick="save('video')" class="button">Save</button>
-    </div>
+    </form>
 
     <script type="text/javascript">
 		function save(formId) {
 			let form = $("#" + formId);
+      showSavingOverlay();
+
 			let dirSet = $("#dirpath").val();
-			showSavingOverlay();
+      // trim the whitespace from text input values
+      let values = toKeyValuePairs(form.serializeArray());
+      values['dir'] = dirSet;
+
 			$.ajax({
 				type: 'POST',
 				url: `/save-${formId}`,
-				data: {
-					filename: form.find('input[name=filename]').val().trim(),
-					url: form.find('input[name=url]').val().trim(),
-					dir: dirSet
-				}, success: function() {
+				data: values, 
+        success: function() {
 					hideSavingOverlay();
 					alert('saved!');
 				}, error: function(err) {
 					hideSavingOverlay();
 					alert('not saved: ', err);
 				}
-			})
+			});
+
+      function toKeyValuePairs(serializedArray) {
+        let keyValPairs = {};
+        for (let i of serializedArray) {
+          keyValPairs[i.name] = i.value;
+        }
+        return keyValPairs;
+      }
+
+      function getInputValue(name) {
+        return form.find(`input[name=${name}]`).val().trim();
+      }
 		}
+
 
 		function showSavingOverlay() {
 			$("#saving-overlay").show();
