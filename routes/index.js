@@ -4,12 +4,35 @@ const fs = require('fs');
 const path = require('path');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
+const MediaSplit = require('media-split');
 
-let url = 'https://www.youtube.com/watch?v=0arsPXEaIUY';
+let snek = 'https://www.youtube.com/watch?v=0arsPXEaIUY';
 let eatshitbob = 'https://www.youtube.com/watch?v=UN8bJb8biZU';
+let comeAlong = 'https://www.youtube.com/watch?v=u8rT6ij0PSo';
 
 router.get('/', function(req, res, next) {
 	res.render('index.ejs');
+})
+
+router.post('/save-audio-media-split', function(req, res, next) {
+	let split = new MediaSplit({ 
+		input: comeAlong, 
+		sections: ['[00:05 - 03:05] Come Along'], 
+		output: '/Users/janice/Music',
+		audioonly: true,
+		quality: 'highestaudio',
+		downloadCover: false
+	});
+	split.parse().then((sections) => {	
+	  for (let section of sections) {
+	    console.log(section.name);      // filename
+	    console.log(section.start);     // section start
+	    console.log(section.end);       // section end
+	    console.log(section.trackName); // track name
+	  }
+	  res.status(200).end();
+	});
+
 })
 
 /* GET home page. */
@@ -94,7 +117,7 @@ router.post('/save-video', function(req, res, next) {
 
 /* GET home page. */
 router.get('/test-audio', function(req, res, next) {
-	let stream = ytdl(url, {
+	let stream = ytdl(snek, {
 		quality: 'highestaudio',
 		filter: 'audioonly'
 	});
@@ -120,7 +143,7 @@ router.get('/test-video', function(req, res, next) {
 });
 
 router.get('/get-info', function(rea, res, next) {
-	ytdl.getInfo(url).then(result => {
+	ytdl.getInfo(snek).then(result => {
 		res.status(200).send(result);
 	}).catch(err => {
 		res.status(err.code).send(err);
