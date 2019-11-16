@@ -2,9 +2,24 @@ var express = require('express');
 var router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const Joi = require('@hapi/joi');
 const ytdl = require('ytdl-core');
 const ffmpeg = require('fluent-ffmpeg');
 const MediaSplit = require('media-split');
+
+const schema = Joi.object({
+	url: Joi.string().uri(),
+	dir: Joi.string().pattern(/[a-zA-z0-9\/\.]/).trim().allow(''),
+	startH: Joi.string().pattern(/[0-9]/).allow(''),
+	startM: Joi.string().pattern(/[0-9]{0,2}/).allow(''),
+	startS: Joi.string().pattern(/[0-9]{0,2}/).allow(''),
+	endH: Joi.string().pattern(/[0-9]/).allow(''),
+	endM: Joi.string().pattern(/[0-9]{0,2}/).allow(''),
+	endS: Joi.string().pattern(/[0-9]{0,2}/).allow(''),
+	artist: Joi.string().trim().allow(''),
+	title: Joi.string().trim(),
+	version: Joi.string().trim().allow('')
+});
 
 let snek = 'https://www.youtube.com/watch?v=0arsPXEaIUY';
 let eatshitbob = 'https://www.youtube.com/watch?v=UN8bJb8biZU';
@@ -37,78 +52,96 @@ router.post('/save-audio-media-split', function(req, res, next) {
 
 /* GET home page. */
 router.post('/save-audio', function(req, res, next) {
-	console.log(req.body);
 
-	let stream = ytdl(req.body.url, {
+	let validated = schema.validate(req.body);
+
+	if (validated.error) {
+		throw new Error(400);
+	}
+
+	let values = validated.value;
+
+	let stream = ytdl(values.url, {
 		quality: 'highestaudio',
 		filter: 'audioonly'
 	});
 
 	// tagging
-	let versionTxt = req.body.version ? ` [${req.body.version}]` : '';
+	let versionTxt = values.version ? ` [${values.version}]` : '';
 
-	let artistTxt = req.body.artist ? `${req.body.artist} - ` : '';
+	let artistTxt = values.artist ? `${values.artist} - ` : '';
 
-	let filename = artistTxt + req.body.title + versionTxt;
+	let filename = artistTxt + values.title + versionTxt;
 
-	let filepath = req.body.dir ? path.join(req.body.dir, filename) : filename;
+	let filepath = values.dir ? path.join(values.dir, filename) : filename;
 
-	let startTime = 0, endTime = 0;
+	let startTimeInSeconds = 0, endTimeInSeconds = 0;
 
 	// start time
-	let startHInS = isNaN(req.body['start-h']) ? 0 : parseInt(req.body['start-h']) * 3600;
+	startTimeInSeconds += values.startH  ? parseInt(values.startH) * 3600 : 0;
 
-	let startMinInS = isNaN(req.body['start-m']) ? 0 : parseInt(req.body['start-m']) * 60;
+	startTimeInSeconds += values.startM ? parseInt(values.startM) * 60 : 0;
 
-	let startS = isNaN(req.body['start-s']) ? 0 : parseInt(req.body['start-s']);
-
-	startTime = startHInS + startMinInS + startS;
+	startTimeInSeconds += values.startS ? parseInt(values.startS) : 0;
 
 	// end time
-	console.log(parseInt(req.body['end-h']), parseInt(req.body['end-m']), parseInt(req.body['end-s']));
-	if (req.body['end-h'] && !isNaN(req.body['end-h'])) {
-		endTime += parseInt(req.body['end-h']) * 3600;
-	}
+	endTimeInSeconds += values.endH ? parseInt(values.endH) * 3600 : 0;
 
-	if (req.body['end-m'] && !isNaN(req.body['end-m'])) {
-		endTime += parseInt(req.body['end-m']) * 60;
-	}
+	endTimeInSeconds += values.endM ? parseInt(values.endM) * 60 : 0;
 
-	if (req.body['end-s'] && !isNaN(req.body['end-s'])) {
-		endTime += parseInt(req.body['end-s']);
-	}
+	endTimeInSeconds += values.endS ? parseInt(values.endS) : 0;
 
+
+	// Start converting
 	let audio = ffmpeg(stream);
 
-	if (req.body.title) {
-		audio.outputOptions('-metadata', `title=${req.body.title}${versionTxt}`);
+	audio.outputOptions('-metadata', `title=${values.title}${versionTxt}`);
+	audio.outputOptions('-metadata', `artist=${values.artist}`);
+
+	audio = audio.seekInput(startTimeInSeconds);
+
+	if (endTimeInSeconds > 0) {
+		let duration = endTimeInSeconds - startTimeInSeconds;
+		let endTime = getEndTimeFormatted(endTimeInSeconds - startTimeInSeconds);
+		let uncutSrc = filepath + ' uncut' + '.mp3';
+
+		audio.setDuration(duration)
+		.save(uncutSrc).on('end', () => {
+			console.log('saved file', uncutSrc);
+			let range = '00:00 - ' + endTime;
+			trimAudio({
+				inputSrc: uncutSrc, 
+				dir: values.dir, 
+				filename: filename, 
+				range: range
+			}).then(() => {
+				res.status(200).send('finished trimming file.');
+			}).catch(err => {
+				console.error(err);
+				res.status(500).send(err.message);
+			});
+		});
+	} else {
+		console.log('no trimming required');
+
+		audio.save(filepath + '.mp3').on('end', () => {
+			console.log('finished saving', filepath + '.mp3');
+			res.status(200).send('file finished saving');
+		});
 	}
-
-	if (req.body.artist) {
-		audio.outputOptions('-metadata', `artist=${req.body.artist}`);
-	}
-
-	console.log(endTime, startTime, endTime - startTime);
-
-	audio = audio.seekInput(startTime);
-	if (endTime) {
-		audio = audio.setDuration(endTime - startTime);
-	}
-	
-	audio.save(filepath + '.mp3').on('end', () => {
-		console.log('finished saving');
-		res.status(200).send('file finished saving');
-	});
-
 });
 
 router.post('/save-video', function(req, res, next) {
 
-	let filename = req.body.dir ? path.join(req.body.dir, req.body.filename) : req.body.filename;
+	let artistTxt = req.body.artist ? `${req.body.artist} - ` : '';
+
+	let filename = artistTxt + req.body.title;
+
+	let filepath = req.body.dir ? path.join(req.body.dir, filename) : filename;
 
 	let stream = ytdl(req.body.url, {
 		quality: 'highestvideo'
-	}).pipe(fs.createWriteStream(filename + '.mp4'));
+	}).pipe(fs.createWriteStream(filepath + '.mp4'));
 
 	stream.on('finish', () => {
 		res.status(200).send('file finished saving');
@@ -148,6 +181,62 @@ router.get('/get-info', function(rea, res, next) {
 	}).catch(err => {
 		res.status(err.code).send(err);
 	})
-})
+});
+
+function formatStartTime(h, m, s) {
+	let hFormatted = h ? padStartZeros(h) + ':' : '';
+	let mFormatted = m ? padStartZeros(m) + ':' : '00:';
+	let sFormatted = s ? padStartZeros(s) : '00';
+
+	let formatted = hFormatted + mFormatted + sFormatted;
+	return formatted;
+}
+
+function getEndTimeFormatted(s) {
+	let hours = Math.floor(s/60);
+	let seconds = s % 60;
+	let minutes = hours % 60;
+	hours = Math.floor(hours/60);
+
+	let hFormatted = hours ? padStartZeros(hours) + ':' : '';
+	let mFormatted = minutes ? padStartZeros(minutes) + ':' : '00:';
+	let sFormatted = seconds ? padStartZeros(seconds) : '00';
+
+	let formatted = hFormatted + mFormatted + sFormatted;
+	return formatted;
+}
+
+function padStartZeros(num) {
+	// pad the start with zeros then take the last two characters.
+	return String(num).padStart(2, '0').slice(-2);
+}
+
+function trimAudio(options) {
+	console.log('trimming audio...', options.inputSrc, options.dir, options.filename, options.range);
+	return new Promise((resolve, reject) => {
+		try {
+			let split = new MediaSplit({ 
+				input: options.inputSrc, 
+				sections: [`[${options.range}] ${options.filename}`], 
+				output: options.dir,
+				quality: 'highestaudio'
+			});
+			split.parse().then((sections) => {
+			  for (let section of sections) {
+			    console.log('saved:', section.name, section.start, '-', section.end);
+			  }
+			  fs.unlink(options.inputSrc, function(err) {
+			  	if (err) {
+			  		console.error(err);
+			  		reject(err);
+			  	}
+			  	resolve('Removed uncut audio file.');
+			  })
+			});
+		} catch(err) {
+			reject(err);
+		}
+	});
+}
 
 module.exports = router;

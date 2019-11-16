@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>YouTube Audio Saver</title>
+    <title>YouTube Converter</title>
     <link rel='stylesheet' href='/stylesheets/style.css' />
 
     <script
 		src="https://code.jquery.com/jquery-3.4.1.min.js"
 		integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
 		crossorigin="anonymous" defer></script>
+
+    <script src="/javascripts/index.js" defer></script>
+
   </head>
   <body class="flex-column center-both">
 
   	<div id="saving-overlay" class="fullscreen flex-column center-both" style="display: none;">
-  		Saving...please wait...
+  		<span id="saving-content"></span><div id="console-underscore">&#95;</div>
   	</div>
 
     <h1>Save a song or video from YouTube</h1>
@@ -30,17 +33,17 @@
       <br/><br/>
       <input type="text" name="title" placeholder="title (required)" required />
       <br/><br/>
-      <input type="text" name="version" placeholder="version" />
+      <input type="text" name="version" placeholder="version/album/comments" pattern="{0,20}" />
     	<br/><br/>
       <p>range</p>
       <div>
-        <input type="number" name="start-h" min="0" value="00" pattern="[0-9]{0,2}" />:
-        <input type="number" name="start-m" min="0" max="60" value="00" pattern="[0-9]{0,2}" />:
-        <input type="number" name="start-s" min="0" max="60" value="00" pattern="[0-9]{0,2}" />
+        <input type="number" name="startH" min="0" step="1" value="00" pattern="[0-9]{0,2}" />:
+        <input type="number" name="startM" min="0" step="1" max="60" value="00" pattern="[0-9]{0,2}" />:
+        <input type="number" name="startS" min="0" max="60" value="00" pattern="[0-9]{0,2}" />
         &nbsp;to&nbsp;
-        <input type="number" name="end-h" min="0" pattern="[0-9]{0,2}" />:
-        <input type="number" name="end-m" min="0" max="60" pattern="[0-9]{0,2}" />:
-        <input type="number" name="end-s" min="0" max="60"  pattern="[0-9]{0,2}"/>
+        <input type="number" name="endH" min="0" step="1" pattern="[0-9]{0,2}" />:
+        <input type="number" name="endM" min="0" step="1" max="60" pattern="[0-9]{0,2}" />:
+        <input type="number" name="endS" min="0" max="60"  pattern="[0-9]{0,2}"/>
       </div>
       <br/><br/>
     	<button type="button" onclick="save('audio')" class="button">Save</button>
@@ -58,65 +61,29 @@
       <br/><br/>
       <input type="text" name="title" placeholder="title (required)" required/>
       <br/><br/>
+      <input type="text" name="version" placeholder="version/album/comments" pattern="{0,20}" />
+      <br/><br/>
       <p>range</p>
       <div>
-        <input type="number" name="start-h" min="0" value="00" />:
-        <input type="number" name="start-m" min="0" max="60" value="00" />:
-        <input type="number" name="start-s" min="0" max="60" value="00" />
+        <input type="number" name="startH" min="0" step="1" value="00" />:
+        <input type="number" name="startM" min="0" step="1" max="60" value="00" />:
+        <input type="number" name="startS" min="0" max="60" value="00" />
         &nbsp;to&nbsp;
-        <input type="number" name="end-h" min="0" />:
-        <input type="number" name="end-m" min="0" max="60" />:
-        <input type="number" name="end-s" min="0" max="60" />
+        <input type="number" name="endH" min="0" step="1" />:
+        <input type="number" name="endM" min="0" step="1" max="60" />:
+        <input type="number" name="endS" min="0" max="60" />
       </div>
     	<br/><br/>
     	<button type="button" onclick="save('video')" class="button">Save</button>
     </form>
 
-    <script type="text/javascript">
-		function save(formId) {
-			let form = $("#" + formId);
-      showSavingOverlay();
-
-			let dirSet = $("#dirpath").val();
-      // trim the whitespace from text input values
-      let values = toKeyValuePairs(form.serializeArray());
-      values['dir'] = dirSet;
-
-			$.ajax({
-				type: 'POST',
-				url: `/save-${formId}`,
-				data: values, 
-        success: function() {
-					hideSavingOverlay();
-					alert('saved!');
-				}, error: function(err) {
-					hideSavingOverlay();
-					alert('not saved: ', err);
-				}
-			});
-
-      function toKeyValuePairs(serializedArray) {
-        let keyValPairs = {};
-        for (let i of serializedArray) {
-          keyValPairs[i.name] = i.value;
-        }
-        return keyValPairs;
-      }
-
-      function getInputValue(name) {
-        return form.find(`input[name=${name}]`).val().trim();
-      }
-		}
-
-
-		function showSavingOverlay() {
-			$("#saving-overlay").show();
-		}
-
-		function hideSavingOverlay() {
-			$("#saving-overlay").hide();
-		}
-    </script>
+    <div class="modal modal-bg fullscreen" id="message-modal">
+      <div class="modal-content" id="message-dialog">
+        A request has been sent to the server. 
+        Your audio or video should be available in a few minutes.<br/>
+        <button onclick="dismissMessage()">Got it</button>
+      </div>
+    </div>
 
   </body>
 </html>
