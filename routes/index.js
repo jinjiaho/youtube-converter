@@ -4,7 +4,9 @@ const fs = require('fs');
 const path = require('path');
 const Joi = require('@hapi/joi');
 const ytdl = require('ytdl-core');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffmpeg = require('fluent-ffmpeg');
+ffmpeg.setFfmpegPath(ffmpegPath);
 const MediaSplit = require('media-split');
 
 const schema = Joi.object({
@@ -18,7 +20,8 @@ const schema = Joi.object({
 	endS: Joi.string().pattern(/[0-9]{0,2}/).allow(''),
 	artist: Joi.string().trim().allow(''),
 	title: Joi.string().trim(),
-	version: Joi.string().trim().allow('')
+	version: Joi.string().trim().allow(''),
+	artistInFilename: Joi.string()
 });
 
 let snek = 'https://www.youtube.com/watch?v=0arsPXEaIUY';
@@ -27,8 +30,9 @@ let comeAlong = 'https://www.youtube.com/watch?v=u8rT6ij0PSo';
 
 router.get('/', function(req, res, next) {
 	res.render('index.ejs');
-})
+});
 
+/* test case for media-split */
 router.post('/save-audio-media-split', function(req, res, next) {
 	let split = new MediaSplit({ 
 		input: comeAlong, 
@@ -50,16 +54,19 @@ router.post('/save-audio-media-split', function(req, res, next) {
 
 })
 
-/* GET home page. */
+/* convert and save audio from YouTube video. */
 router.post('/save-audio', function(req, res, next) {
 
 	let validated = schema.validate(req.body);
 
 	if (validated.error) {
+		console.log(validated.error);
 		throw new Error(400);
 	}
 
 	let values = validated.value;
+
+	console.log('converting "' + values.title + '"...');
 
 	let stream = ytdl(values.url, {
 		quality: 'highestaudio',
@@ -69,11 +76,13 @@ router.post('/save-audio', function(req, res, next) {
 	// tagging
 	let versionTxt = values.version ? ` [${values.version}]` : '';
 
-	let artistTxt = values.artist ? `${values.artist} - ` : '';
+	let artistTxt = (values.artist && values.artistInFilename) ? `${values.artist} - ` : '';
 
 	let filename = artistTxt + values.title + versionTxt;
 
-	let filepath = values.dir ? path.join(values.dir, filename) : filename;
+	let dir = (values.dir !== '') ? values.dir : './';
+
+	let filepath = path.join(dir, filename);
 
 	let startTimeInSeconds = 0, endTimeInSeconds = 0;
 
@@ -107,14 +116,15 @@ router.post('/save-audio', function(req, res, next) {
 
 		audio.setDuration(duration)
 		.save(uncutSrc).on('end', () => {
-			console.log('saved file', uncutSrc);
+			console.log('saved file for trimming', uncutSrc);
 			let range = '00:00 - ' + endTime;
 			trimAudio({
 				inputSrc: uncutSrc, 
-				dir: values.dir, 
+				dir: dir, 
 				filename: filename, 
 				range: range
 			}).then(() => {
+				console.log('Conversion and trimming complete!', filename);
 				res.status(200).send('finished trimming file.');
 			}).catch(err => {
 				console.error(err);
@@ -125,7 +135,7 @@ router.post('/save-audio', function(req, res, next) {
 		console.log('no trimming required');
 
 		audio.save(filepath + '.mp3').on('end', () => {
-			console.log('finished saving', filepath + '.mp3');
+			console.log('finished saving w/o trimming', filepath + '.mp3');
 			res.status(200).send('file finished saving');
 		});
 	}

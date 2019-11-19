@@ -22,19 +22,22 @@
 
     <h4>Set the directory to save in (default will be project folder)</h4>
 
-  	<input type="text" id="dirpath" />
+  	<form>
+      <input type="text" id="dirpath" />
+    </form>
 
     <h2>Audio</h2>
 
     <form id="audio" class="center-text">
       <input type="text" name="url" placeholder="url (required)" autocomplete="true" required/>
-      <br/><br/>
+      <br/>
     	<input type="text" name="artist" placeholder="artist" />
+      <input type="checkbox" name="artistInFilename" checked/><label for="artistInFilename">Include in filename and trackname</label>
       <br/><br/>
       <input type="text" name="title" placeholder="title (required)" required />
-      <br/><br/>
+      <br/>
       <input type="text" name="version" placeholder="version/album/comments" pattern="{0,20}" />
-    	<br/><br/>
+    	<br/>
       <p>range</p>
       <div>
         <input type="number" name="startH" min="0" step="1" value="00" pattern="[0-9]{0,2}" />:
@@ -45,24 +48,21 @@
         <input type="number" name="endM" min="0" step="1" max="60" pattern="[0-9]{0,2}" />:
         <input type="number" name="endS" min="0" max="60"  pattern="[0-9]{0,2}"/>
       </div>
-      <br/><br/>
+      <br/>
     	<button type="button" onclick="save('audio')" class="button">Save</button>
     </form>
 
-    <br/>
-    <br/>
-
-    <h2>Video</h2>
+    <!-- <h2>Video</h2>
 
     <form id="video" class="center-text">
       <input type="text" name="url" placeholder="url (required)" required/>
-      <br/><br/>
+      <br/>
       <input type="text" name="artist" placeholder="artist" />
-      <br/><br/>
+      <br/>
       <input type="text" name="title" placeholder="title (required)" required/>
-      <br/><br/>
+      <br/>
       <input type="text" name="version" placeholder="version/album/comments" pattern="{0,20}" />
-      <br/><br/>
+      <br/>
       <p>range</p>
       <div>
         <input type="number" name="startH" min="0" step="1" value="00" />:
@@ -73,7 +73,7 @@
         <input type="number" name="endM" min="0" step="1" max="60" />:
         <input type="number" name="endS" min="0" max="60" />
       </div>
-    	<br/><br/>
+    	<br/>
     	<button type="button" onclick="save('video')" class="button">Save</button>
     </form>
 
@@ -84,6 +84,6 @@
         <button onclick="dismissMessage()">Got it</button>
       </div>
     </div>
-
+ -->
   </body>
 </html>

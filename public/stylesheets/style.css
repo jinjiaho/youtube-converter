@@ -13,9 +13,21 @@ input {
 	text-align: center;
 }
 
+input[type=text] {
+	width: 100%;
+}
+
 input[type=number] {
 	min-width: unset;
 	width: 3rem;
+}
+
+input[type=checkbox] {
+	cursor: pointer;
+}
+
+form {
+	margin-bottom: 3rem;
 }
 
 button {
