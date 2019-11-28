@@ -95,6 +95,10 @@ button:focus {
 	top: 30%;
 }
 
+.fs-small {
+	font-size: small;
+}
+
 #message-dialog {
 	line-height: 2rem;
 }

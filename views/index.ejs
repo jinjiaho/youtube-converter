@@ -18,24 +18,26 @@
   		<span id="saving-content"></span><div id="console-underscore">&#95;</div>
   	</div>
 
-    <h1>Save a song or video from YouTube</h1>
+    <h1>Save a song from YouTube</h1>
 
     <h4>Set the directory to save in (default will be project folder)</h4>
 
   	<form>
-      <input type="text" id="dirpath" />
+      <input type="text" id="dirpath" placeholder="path/to/folder"/>
     </form>
 
-    <h2>Audio</h2>
+    <!-- <h2>Audio</h2> -->
 
     <form id="audio" class="center-text">
       <input type="text" name="url" placeholder="url (required)" autocomplete="true" required/>
-      <br/>
-    	<input type="text" name="artist" placeholder="artist" />
-      <input type="checkbox" name="artistInFilename" checked/><label for="artistInFilename">Include in filename and trackname</label>
       <br/><br/>
-      <input type="text" name="title" placeholder="title (required)" required />
+    	<input type="text" name="artist" placeholder="artist" />
+      <p class="fs-small">
+        <input type="checkbox" name="artistInFilename"/><label for="artistInFilename">Include in filename and trackname</label>
+      </p>
       <br/>
+      <input type="text" name="title" placeholder="title (required)" required />
+      <br/><br/>
       <input type="text" name="version" placeholder="version/album/comments" pattern="{0,20}" />
     	<br/>
       <p>range</p>
