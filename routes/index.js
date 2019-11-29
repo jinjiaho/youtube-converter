@@ -34,15 +34,15 @@ router.get('/', function(req, res, next) {
 
 /* test case for media-split */
 router.post('/save-audio-media-split', function(req, res, next) {
-	let split = new MediaSplit({ 
-		input: comeAlong, 
-		sections: ['[00:05 - 03:05] Come Along'], 
+	let split = new MediaSplit({
+		input: comeAlong,
+		sections: ['[00:05 - 03:05] Come Along'],
 		output: '/Users/janice/Music',
 		audioonly: true,
 		quality: 'highestaudio',
 		downloadCover: false
 	});
-	split.parse().then((sections) => {	
+	split.parse().then((sections) => {
 	  for (let section of sections) {
 	    console.log(section.name);      // filename
 	    console.log(section.start);     // section start
@@ -55,9 +55,10 @@ router.post('/save-audio-media-split', function(req, res, next) {
 })
 
 /* convert and save audio from YouTube video. */
-router.post('/save-audio', function(req, res, next) {
+router.post('/save-audio', async function(req, res, next) {
 
 	let validated = schema.validate(req.body);
+	let format = 'mp3';
 
 	if (validated.error) {
 		console.log(validated.error);
@@ -82,8 +83,6 @@ router.post('/save-audio', function(req, res, next) {
 
 	let dir = (values.dir !== '') ? values.dir : './';
 
-	let filepath = path.join(dir, filename);
-
 	let startTimeInSeconds = 0, endTimeInSeconds = 0;
 
 	// start time
@@ -106,25 +105,30 @@ router.post('/save-audio', function(req, res, next) {
 
 	audio.outputOptions('-metadata', `title=${values.title}${versionTxt}`);
 	audio.outputOptions('-metadata', `artist=${values.artist}`);
+	audio.outputOptions('-metadata', `album=${values.version}`);
 
 	audio = audio.seekInput(startTimeInSeconds);
+	let finalFilename = await checkFileExists(dir, filename, 0, '.' + format);
+	console.log('finalFilename:', finalFilename);
+	let filepath = path.join(dir, finalFilename);
 
 	if (endTimeInSeconds > 0) {
 		let duration = endTimeInSeconds - startTimeInSeconds;
 		let endTime = getEndTimeFormatted(endTimeInSeconds - startTimeInSeconds);
-		let uncutSrc = filepath + ' uncut' + '.mp3';
+		let uncutSrc = filepath + '_uncut.' + format;
 
 		audio.setDuration(duration)
 		.save(uncutSrc).on('end', () => {
 			console.log('saved file for trimming', uncutSrc);
 			let range = '00:00 - ' + endTime;
 			trimAudio({
-				inputSrc: uncutSrc, 
-				dir: dir, 
-				filename: filename, 
+				inputSrc: uncutSrc,
+				dir: dir,
+				filename: finalFilename,
+				format: format,
 				range: range
 			}).then(() => {
-				console.log('Conversion and trimming complete!', filename);
+				console.log('Conversion and trimming complete!', finalFilename + '.' + format);
 				res.status(200).send('finished trimming file.');
 			}).catch(err => {
 				console.error(err);
@@ -133,9 +137,9 @@ router.post('/save-audio', function(req, res, next) {
 		});
 	} else {
 		console.log('no trimming required');
-
-		audio.save(filepath + '.mp3').on('end', () => {
-			console.log('finished saving w/o trimming', filepath + '.mp3');
+		finalFilename += '.' + format;
+		audio.save(finalFilename).on('end', () => {
+			console.log('finished saving w/o trimming', finalFilename);
 			res.status(200).send('file finished saving');
 		});
 	}
@@ -193,6 +197,25 @@ router.get('/get-info', function(rea, res, next) {
 	})
 });
 
+// Checks if the file of the same name exists and changes the filename if it does.
+function checkFileExists(dir, originalFilename, count, extension) {
+	return new Promise((resolve, reject) => {
+		let newPath = path.join(dir, originalFilename) + (count > 0 ? `_(${count})` : '') + extension;
+		fs.access(newPath, fs.constants.F_OK, (err) => {
+			if (err) {
+				console.log(newPath, 'does not exist');
+				let newName = originalFilename + (count > 0 ? `_(${count})` : '');
+				resolve(newName);
+			} else {
+				console.log(newPath, 'exists');
+				//file exists
+				count += 1;
+				resolve(checkFileExists(dir, originalFilename, count, extension));
+			}
+		});
+	});
+}
+
 function formatStartTime(h, m, s) {
 	let hFormatted = h ? padStartZeros(h) + ':' : '';
 	let mFormatted = m ? padStartZeros(m) + ':' : '00:';
@@ -223,11 +246,12 @@ function padStartZeros(num) {
 
 function trimAudio(options) {
 	console.log('trimming audio...', options.inputSrc, options.dir, options.filename, options.range);
-	return new Promise((resolve, reject) => {
+	return new Promise(async (resolve, reject) => {
 		try {
-			let split = new MediaSplit({ 
-				input: options.inputSrc, 
-				sections: [`[${options.range}] ${options.filename}`], 
+			// let targetFilename = await checkFileExists(dir, options.filename, 0, options.format);
+			let split = new MediaSplit({
+				input: options.inputSrc,
+				sections: [`[${options.range}] ${options.filename}`],
 				output: options.dir,
 				quality: 'highestaudio'
 			});
