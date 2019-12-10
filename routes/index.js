@@ -4,10 +4,13 @@ const fs = require('fs');
 const path = require('path');
 const Joi = require('@hapi/joi');
 const ytdl = require('ytdl-core');
-const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const ffmpeg = require('fluent-ffmpeg');
-ffmpeg.setFfmpegPath(ffmpegPath);
 const MediaSplit = require('media-split');
+const ffmpeg = require('fluent-ffmpeg');
+// use ffmpeg-installer to set the ffmpeg path
+if (process.platform === 'win32') {
+	const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+	ffmpeg.setFfmpegPath(ffmpegPath);
+}
 
 const schema = Joi.object({
 	url: Joi.string().uri(),
