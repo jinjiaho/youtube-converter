@@ -6,11 +6,8 @@ const Joi = require('@hapi/joi');
 const ytdl = require('ytdl-core');
 const MediaSplit = require('media-split');
 const ffmpeg = require('fluent-ffmpeg');
-// use ffmpeg-installer to set the ffmpeg path
-if (process.platform === 'win32') {
-	const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-	ffmpeg.setFfmpegPath(ffmpegPath);
-}
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+ffmpeg.setFfmpegPath(ffmpegPath);
 
 const schema = Joi.object({
 	url: Joi.string().uri(),
@@ -27,9 +24,10 @@ const schema = Joi.object({
 	artistInFilename: Joi.string()
 });
 
+// Test urls
 let snek = 'https://www.youtube.com/watch?v=0arsPXEaIUY';
 let eatshitbob = 'https://www.youtube.com/watch?v=UN8bJb8biZU';
-let comeAlong = 'https://www.youtube.com/watch?v=u8rT6ij0PSo';
+let comeAlong = 'https://www.youtube.com/watch?v=u8rT6ij0PSo';	// 00:05 - 03:05
 
 router.get('/', function(req, res, next) {
 	res.render('index.ejs');
@@ -140,8 +138,8 @@ router.post('/save-audio', async function(req, res, next) {
 		});
 	} else {
 		console.log('no trimming required');
-		finalFilename += '.' + format;
-		audio.save(finalFilename).on('end', () => {
+		filepath += '.' + format;
+		audio.save(filepath).on('end', () => {
 			console.log('finished saving w/o trimming', finalFilename);
 			res.status(200).send('file finished saving');
 		});
